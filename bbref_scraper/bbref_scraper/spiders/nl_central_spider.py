@@ -1,28 +1,45 @@
 import scrapy
 import json
+from calendar import monthrange
+from urllib.parse import urlencode
 
 
 class QuotesSpider(scrapy.Spider):
     name = "nl_central"
+
 
     def write_to_json(self, dict):
         jsonString = json.dumps(dict)
         with open("nl_central.json", "a") as jsonFile:
             jsonFile.write(jsonString)
 
-    def start_requests(self):
-        urls = [
-            'https://www.baseball-reference.com/boxes/?year=2021&month=04&day=15'
-            # 'http://quotes.toscrape.com/page/1/',
-            # 'http://quotes.toscrape.com/page/2/',
-        ]
-        for url in urls:
-            yield scrapy.Request(url=url, callback=self.parse)
 
-    def parse(self, response):
+    def generate_urls(self):
+        
+        base_url = 'https://www.baseball-reference.com/boxes/'
+        urls = []
+        year = 2021
+        for i in range(4,5):
+            month = i
+            for day in range(monthrange(year,month)[1]):
+                dt = { "year" : year, "month" : month, "day" : day + 1 }
+                url = base_url + "?" + urlencode(dt)
+                urls.append({ "date" : dt, "url" : url } )
+
+        return urls
+
+
+    def start_requests(self):
+
+        urls = self.generate_urls()
+        for url in urls:
+            yield scrapy.Request(url=url['url'], callback=self.parse, cb_kwargs=dict(dt=url['date']))
+
+
+    def parse(self, response, dt):
 
         date = {
-            "date": 20210714,
+            "date": dt,
             "CIN": {
                 "wins": 0,
                 "losses": 0,
@@ -52,20 +69,23 @@ class QuotesSpider(scrapy.Spider):
 
         rows = response.xpath('//table[@id="standings-upto-NL-C"]/tbody//tr')
         for row in rows:
-            print('here')
             print(row)
             team = row.xpath('th//text()').get()
             wins = row.xpath('td[@data-stat="W"]/text()').get()
             losses = row.xpath('td[@data-stat="L"]/text()').get()
             games_back = row.xpath('td[@data-stat="games_back"]/text()').get()
 
-            print(team)
-            print(wins)
-            print(losses)
-            print(games_back)
-
-            date[team]["wins"] = wins
-            date[team]["losses"] = losses
-            date[team]["games_back"] = games_back
+            try:
+                date[team]["wins"] = float(wins)
+            except Exception:
+                pass
+            try:
+                date[team]["losses"] = float(losses)
+            except Exception:
+                pass
+            try:
+                date[team]["games_back"] = float(games_back)
+            except Exception:
+                pass
 
         self.write_to_json(date)
