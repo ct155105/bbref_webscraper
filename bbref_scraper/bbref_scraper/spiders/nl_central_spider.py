@@ -19,7 +19,7 @@ class QuotesSpider(scrapy.Spider):
         base_url = 'https://www.baseball-reference.com/boxes/'
         urls = []
         year = 2021
-        for i in range(4,5):
+        for i in range(3,11):
             month = i
             for day in range(monthrange(year,month)[1]):
                 dt = { "year" : year, "month" : month, "day" : day + 1 }
