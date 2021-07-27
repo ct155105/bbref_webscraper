@@ -11,7 +11,7 @@ class QuotesSpider(scrapy.Spider):
     def write_to_json(self, dict):
         jsonString = json.dumps(dict)
         with open("nl_central.json", "a") as jsonFile:
-            jsonFile.write(jsonString)
+            jsonFile.write("\n," + jsonString)
 
 
     def generate_urls(self):
